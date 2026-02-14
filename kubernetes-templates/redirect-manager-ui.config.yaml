@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redirect-manager-ui-app-config
+  namespace: ${NAMESPACE}
+data:
+  # These keys will become the environment variable names.
+  RUNTIME_API_BASE_URL: "${REDIRECT_MANAGER_API_BASE_URL}"

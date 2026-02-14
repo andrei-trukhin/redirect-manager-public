@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redirect-manager-api-app
+  namespace: ${NAMESPACE}
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      redirect-manager-api: app
+  template:
+    metadata:
+      labels:
+        redirect-manager-api: app
+        app.kubernetes.io/name: redirect-manager-api-app
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: redirect-manager-api-container
+          image: andreitrukhin/redirect-manager-api:1.0.0-beta.2
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - secretRef:
+                name: redirect-manager-api-app-secrets
+            - configMapRef:
+                name: redirect-manager-api-app-config
+          ports:
+            - containerPort: 8080
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+              ephemeral-storage: "1Gi"
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+              ephemeral-storage: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redirect-manager-api-app-service
+  namespace: ${NAMESPACE}
+spec:
+  selector:
+    redirect-manager-api: app
+    app.kubernetes.io/name: redirect-manager-api-app
+  ports:
+    - protocol: TCP
+      name: http
+      port: 80
+      targetPort: 8080
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: redirect-manager-api-app-ingress
+  namespace: ${NAMESPACE}
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 512m
+spec:
+  ingressClassName: nginx
+  # If you want to enable TLS, uncomment the following lines and make sure to create a TLS secret named "
+  # Alternatively, you can use cert-manager to automatically manage TLS certificates for your Ingress.
+  #tls:
+  #  - hosts:
+  #      - "redirect.manager.api.local"
+  #    secretName: "tls-secret"
+  rules:
+    - host: "${REDIRECT_MANAGER_API_HOST}"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: redirect-manager-api-app-service
+                port:
+                  number: 80

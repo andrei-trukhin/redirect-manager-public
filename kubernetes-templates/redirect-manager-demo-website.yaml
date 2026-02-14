@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redirect-manager-demo-website-app
+  namespace: ${NAMESPACE}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      redirect-manager-demo-website: app
+  template:
+    metadata:
+      labels:
+        redirect-manager-demo-website: app
+        app.kubernetes.io/name: redirect-manager-demo-website-app
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: redirect-manager-demo-website-container
+          image: redirect-manager-demo-website:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "250m"
+              ephemeral-storage: "256Mi"
+            requests:
+              memory: "64Mi"
+              cpu: "125m"
+              ephemeral-storage: "128Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redirect-manager-demo-website-app-service
+  namespace: ${NAMESPACE}
+spec:
+  type: NodePort
+  selector:
+    redirect-manager-demo-website: app
+    app.kubernetes.io/name: redirect-manager-demo-website-app
+  ports:
+    - port: 80
+      targetPort: 3000

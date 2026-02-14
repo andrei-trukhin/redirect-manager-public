@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redirect-manager-ui-app
+  namespace: ${NAMESPACE}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      redirect-manager-ui: app
+  template:
+    metadata:
+      labels:
+        redirect-manager-ui: app
+        app.kubernetes.io/name: redirect-manager-ui-app
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: redirect-manager-ui-container
+          image: andreitrukhin/redirect-manager-ui:1.0.0-alpha.1
+          imagePullPolicy: IfNotPresent
+          envFrom:
+              - configMapRef:
+                  name: redirect-manager-ui-app-config
+          ports:
+            - containerPort: 3000
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "250m"
+              ephemeral-storage: "256Mi"
+            requests:
+              memory: "64Mi"
+              cpu: "125m"
+              ephemeral-storage: "128Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redirect-manager-ui-app-service
+  namespace: ${NAMESPACE}
+spec:
+  selector:
+    redirect-manager-ui: app
+    app.kubernetes.io/name: redirect-manager-ui-app
+  ports:
+    - protocol: TCP
+      name: http
+      port: 80
+      targetPort: 3000
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: redirect-manager-ui-app-ingress
+  namespace: ${NAMESPACE}
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 512m
+spec:
+  ingressClassName: nginx
+  # If you want to enable TLS, uncomment the following lines and make sure to create a TLS secret named "
+  # Alternatively, you can use cert-manager to automatically manage TLS certificates for your Ingress.
+  #tls:
+  #  - hosts:
+  #      - "redirect.manager.ui.local"
+  #    secretName: "tls-secret"
+  rules:
+    - host: "${REDIRECT_MANAGER_UI_HOST}"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: redirect-manager-ui-app-service
+                port:
+                  number: 80

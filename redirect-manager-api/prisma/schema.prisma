@@ -1,0 +1,94 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["relationJoins"]
+  runtime         = "nodejs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum RedirectStatusCode {
+  STATUS_301
+  STATUS_302
+  STATUS_304
+  STATUS_307
+  STATUS_308
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+enum TokenScope {
+  READ
+  READ_WRITE
+}
+
+model Redirect {
+  id              Int                @id @default(autoincrement())
+  source          String             @unique
+  sourcePrefix    String
+  sourceLength    Int
+  destination     String
+  domain          String? // optional
+  statusCode      RedirectStatusCode
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  enabled         Boolean            @default(true)
+  isCaseSensitive Boolean            @default(false)
+
+  @@index(fields: [sourcePrefix, sourceLength(sort: Desc)], name: "idx_source_prefix_length")
+  @@map("redirects")
+}
+
+model User {
+  id        String         @id @default(uuid())
+  username  String         @unique
+  password  String // store hashed password (e.g. bcrypt/argon2 output)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  Token     RefreshToken[]
+  apiTokens ApiToken[]
+  role      UserRole       @default(USER)
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id          Int      @id @default(autoincrement())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  hashedToken String   @unique // HMAC-SHA256 hash of the token
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  revoked     Boolean  @default(false)
+
+  @@index([userId])
+  @@index([hashedToken], name: "idx_token_hashed", type: Hash)
+  @@map("refresh_tokens")
+}
+
+model ApiToken {
+  id          String     @id @default(uuid())
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  hashedToken String     @unique // HMAC-SHA256 hash of the token
+  name        String // User-provided name for the token
+  scope       TokenScope // Permission level
+  expiresAt   DateTime
+  createdAt   DateTime   @default(now())
+  lastUsedAt  DateTime? // Tracks the last time the token was used
+
+  @@index([userId])
+  @@index([hashedToken], name: "idx_api_token_hashed", type: Hash)
+  @@map("api_tokens")
+}

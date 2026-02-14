@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redirect-manager-api-app-config
+  namespace: ${NAMESPACE}
+data:
+  # These keys will become the environment variable names.
+  BASE_API_PATH: "/api"
+  REVERSE_PROXY_TARGET_BASE_URL: "${REVERSE_PROXY_TARGET_BASE_URL}"
+  CORS_ORIGIN: "${CORS_ORIGIN:-*}"
+  CORS_ALLOW_CREDENTIALS: "${CORS_ALLOW_CREDENTIALS:-false}"

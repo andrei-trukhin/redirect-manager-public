@@ -1,3 +1,11 @@
+/redirect-manager-api/.env
+/.env
+/redirect-manager-ui/.env
+
+/kubernetes-templates/*.crt
+/kubernetes-templates/*.key
+/kubernetes-templates/*.pem
+/kubernetes-templates/.env*
 # Logs
 logs
 *.log

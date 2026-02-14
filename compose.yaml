@@ -1,0 +1,38 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:15
+    platform: linux/amd64
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: examplepassword
+      POSTGRES_DB: myappdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  redirect-svc:
+    image: node:20
+    working_dir: /app
+    depends_on:
+      - postgres
+    environment:
+      # Prisma / app expected DATABASE_URL format:
+      DATABASE_URL: "postgresql://postgres:examplepassword@postgres:5432/myappdb?schema=public"
+      NODE_ENV: development
+      REVERSE_PROXY_TARGET_BASE_URL: ${REVERSE_PROXY_TARGET_BASE_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      TOKEN_HASH_PEPPER: ${TOKEN_HASH_PEPPER}
+      CORS_ORIGIN: ${CROSS_ORIGIN}
+      CORS_ALLOW_CREDENTIALS: ${CORS_ALLOW_CREDENTIALS:-false}
+    volumes:
+      - ./redirect-manager-api:/app
+      - ./redirect-manager-api/node_modules:/app/node_modules
+    ports:
+      - "8080:8080"
+    command: ["sh", "-c", "npm run prisma:generate && npm run dev" ]
+
+volumes:
+  db_data:
